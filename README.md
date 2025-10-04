@@ -2,6 +2,21 @@
 
 A Flutter application for the Beauty LMS Video Conferencing System, providing cross-platform support for Android, iOS, and Web.
 
+## 🆕 Recent Updates - WebRTC Connection Fixes
+
+✅ **Major improvements to video conferencing connectivity:**
+- Fixed host and participant connection issues
+- Improved camera and audio transmission between users
+- Added real-time connection status indicators
+- Enhanced WebRTC signaling with proper sender identification
+- Added automatic reconnection on connection failures
+- Improved media quality with echo cancellation and noise suppression
+
+📚 **Documentation Added:**
+- [WebRTC Fix Guide](WEBRTC_FIX_GUIDE.md) - Detailed technical explanation
+- [Visual Changes](VISUAL_CHANGES.md) - UI improvements and diagrams
+- [Screenshot Guide](SCREENSHOT_GUIDE.md) - Testing and validation guide
+
 ## 🚀 Features
 
 ### ✅ Implemented Features
@@ -12,12 +27,18 @@ A Flutter application for the Beauty LMS Video Conferencing System, providing cr
 - **API Testing Suite**: Comprehensive testing tool for all backend APIs
 - **Responsive Design**: Adaptive layout for mobile, tablet, and desktop
 - **Cross-platform**: Runs on Android, iOS, and Web
+- **WebRTC Video/Audio**: Full peer-to-peer video and audio streaming
+- **Connection Status**: Real-time indicators for connection health
 
-### 🎥 Video Conferencing Components
-- Meeting room interface with video placeholder
-- Participant list with real-time updates
+### 🎥 Video Conferencing Features
+- Full WebRTC peer-to-peer connections
+- Real-time video and audio streaming
+- Meeting room interface with grid layout
+- Participant list with connection status indicators
 - Chat panel with system messages
-- Meeting controls (mute, camera, screen share placeholders)
+- Meeting controls (mute, camera toggle, screen share)
+- Automatic reconnection on network issues
+- Enhanced audio with echo cancellation and noise suppression
 
 ## 📱 Platform Support
 

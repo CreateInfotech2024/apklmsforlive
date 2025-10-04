@@ -115,32 +115,44 @@ class SocketService {
     });
   }
 
+  String? _currentParticipantId;
+
+  // Set current participant ID for WebRTC signaling
+  void setCurrentParticipantId(String participantId) {
+    _currentParticipantId = participantId;
+  }
+
   // WebRTC Signaling - Send offer
   void sendOffer(Map<String, dynamic> offer, String to) {
-    if (_socket != null) {
+    if (_socket != null && _currentParticipantId != null) {
       _socket!.emit('webrtc-offer', {
         'offer': offer,
         'to': to,
+        'from': _currentParticipantId,
       });
+      print('📤 Sent offer to $to from $_currentParticipantId');
     }
   }
 
   // WebRTC Signaling - Send answer
   void sendAnswer(Map<String, dynamic> answer, String to) {
-    if (_socket != null) {
+    if (_socket != null && _currentParticipantId != null) {
       _socket!.emit('webrtc-answer', {
         'answer': answer,
         'to': to,
+        'from': _currentParticipantId,
       });
+      print('📤 Sent answer to $to from $_currentParticipantId');
     }
   }
 
   // WebRTC Signaling - Send ICE candidate
   void sendIceCandidate(Map<String, dynamic> candidate, String to) {
-    if (_socket != null) {
+    if (_socket != null && _currentParticipantId != null) {
       _socket!.emit('webrtc-ice-candidate', {
         'candidate': candidate,
         'to': to,
+        'from': _currentParticipantId,
       });
     }
   }
