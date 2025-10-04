@@ -18,6 +18,7 @@ class WebRTCService {
   // Callbacks
   Function(MediaStream, String)? onRemoteStreamAdded;
   Function(String)? onRemoteStreamRemoved;
+  Function(String, bool)? onConnectionStateChanged;
   
   // Set current participant ID
   void setCurrentParticipantId(String participantId) {
@@ -123,15 +124,19 @@ class WebRTCService {
       print('🔗 Connection state with $participantId: $state');
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         print('✅ Successfully connected to $participantId');
+        onConnectionStateChanged?.call(participantId, true);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         print('❌ Connection failed with $participantId, attempting to reconnect...');
+        onConnectionStateChanged?.call(participantId, false);
         // Try to reconnect after a delay
         Future.delayed(const Duration(seconds: 2), () {
           createOffer(participantId);
         });
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
         print('⚠️ Disconnected from $participantId');
+        onConnectionStateChanged?.call(participantId, false);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        onConnectionStateChanged?.call(participantId, false);
         removeParticipant(participantId);
       }
     };

@@ -35,6 +35,7 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
   bool _isMuted = false;
   bool _isCameraOff = false;
   bool _isInitializingMedia = false;
+  final Map<String, bool> _participantConnectionStatus = {};
 
   @override
   void initState() {
@@ -45,6 +46,16 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
     _initializeSocket();
     _initializeMedia();
     _addParticipant(widget.currentParticipant);
+    
+    // Periodically update connection status UI
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        setState(() {}); // Trigger rebuild to update connection status
+        return true;
+      }
+      return false;
+    });
   }
 
   Future<void> _initializeRenderers() async {
@@ -85,6 +96,13 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
             renderer.dispose();
             _remoteRenderers.remove(participantId);
           }
+          _participantConnectionStatus.remove(participantId);
+        });
+      };
+      
+      _webrtcService.onConnectionStateChanged = (participantId, isConnected) {
+        setState(() {
+          _participantConnectionStatus[participantId] = isConnected;
         });
       };
     } catch (e) {
@@ -316,6 +334,27 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
           ],
         ),
         actions: [
+          // Connection status indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Icon(
+                  _socketService.isConnected ? Icons.wifi : Icons.wifi_off,
+                  color: _socketService.isConnected ? Colors.green : Colors.red,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _socketService.isConnected ? 'Connected' : 'Disconnected',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _socketService.isConnected ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
           IconButton(
             icon: Icon(_showChat ? Icons.chat : Icons.chat_bubble_outline),
             onPressed: () {
@@ -598,6 +637,18 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
                             participant.name,
                             style: const TextStyle(color: Colors.white, fontSize: 14),
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Connection status indicator
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _participantConnectionStatus[participantId] == true 
+                                ? Colors.green 
+                                : Colors.orange,
                           ),
                         ),
                       ],
