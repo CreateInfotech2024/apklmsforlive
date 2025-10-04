@@ -12,7 +12,9 @@ A Flutter application for the Beauty LMS Video Conferencing System, providing cr
 - Added automatic reconnection on connection failures
 - Improved media quality with echo cancellation and noise suppression
 
-📚 **Documentation Added:**
+📚 **Documentation:**
+- [Issue Resolution Report](ISSUE_RESOLUTION_REPORT.md) - **START HERE** - Complete resolution summary
+- [Before/After Comparison](BEFORE_AFTER_COMPARISON.md) - Visual problem/solution comparison
 - [WebRTC Fix Guide](WEBRTC_FIX_GUIDE.md) - Detailed technical explanation
 - [Visual Changes](VISUAL_CHANGES.md) - UI improvements and diagrams
 - [Screenshot Guide](SCREENSHOT_GUIDE.md) - Testing and validation guide
