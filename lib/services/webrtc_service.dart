@@ -11,28 +11,44 @@ class WebRTCService {
   MediaStream? _localStream;
   bool _isAudioEnabled = true;
   bool _isVideoEnabled = true;
+  String? _currentParticipantId;
   
   final SocketService _socketService = SocketService();
   
   // Callbacks
   Function(MediaStream, String)? onRemoteStreamAdded;
   Function(String)? onRemoteStreamRemoved;
+  
+  // Set current participant ID
+  void setCurrentParticipantId(String participantId) {
+    _currentParticipantId = participantId;
+    _socketService.setCurrentParticipantId(participantId);
+  }
 
-  // Configuration for STUN servers
+  // Configuration for STUN servers with better connectivity
   final Map<String, dynamic> _configuration = {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
       {'urls': 'stun:stun1.l.google.com:19302'},
-    ]
+      {'urls': 'stun:stun2.l.google.com:19302'},
+      {'urls': 'stun:stun3.l.google.com:19302'},
+      {'urls': 'stun:stun4.l.google.com:19302'},
+    ],
+    'sdpSemantics': 'unified-plan',
   };
 
-  // Media constraints
+  // Media constraints with better compatibility
   final Map<String, dynamic> _mediaConstraints = {
-    'audio': true,
+    'audio': {
+      'echoCancellation': true,
+      'noiseSuppression': true,
+      'autoGainControl': true,
+    },
     'video': {
       'facingMode': 'user',
-      'width': {'ideal': 640},
-      'height': {'ideal': 480},
+      'width': {'min': 320, 'ideal': 640, 'max': 1280},
+      'height': {'min': 240, 'ideal': 480, 'max': 720},
+      'frameRate': {'ideal': 30, 'max': 30},
     }
   };
 
@@ -105,11 +121,24 @@ class WebRTCService {
     // Handle connection state changes
     peerConnection.onConnectionState = (state) {
       print('🔗 Connection state with $participantId: $state');
-      if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+      if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        print('✅ Successfully connected to $participantId');
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
+        print('❌ Connection failed with $participantId, attempting to reconnect...');
+        // Try to reconnect after a delay
+        Future.delayed(const Duration(seconds: 2), () {
+          createOffer(participantId);
+        });
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
+        print('⚠️ Disconnected from $participantId');
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
         removeParticipant(participantId);
       }
+    };
+    
+    // Handle ICE connection state changes
+    peerConnection.onIceConnectionState = (state) {
+      print('🧊 ICE connection state with $participantId: $state');
     };
 
     // Add local stream to peer connection
@@ -129,13 +158,36 @@ class WebRTCService {
       final offer = data['offer'];
       final from = data['from'];
       
+      print('📥 Received offer from $from');
+      
+      // Skip if it's from ourselves
+      if (from == _currentParticipantId) {
+        print('⏭️ Skipping offer from self');
+        return;
+      }
+      
+      // Close existing connection if any
+      if (_peerConnections.containsKey(from)) {
+        print('♻️ Closing existing connection with $from');
+        await _peerConnections[from]?.close();
+        _peerConnections.remove(from);
+      }
+      
       final peerConnection = await _createPeerConnection(from);
       
       await peerConnection.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
       );
       
-      final answer = await peerConnection.createAnswer();
+      // Create answer with proper constraints
+      final answerConstraints = {
+        'mandatory': {
+          'OfferToReceiveAudio': true,
+          'OfferToReceiveVideo': true,
+        },
+      };
+      
+      final answer = await peerConnection.createAnswer(answerConstraints);
       await peerConnection.setLocalDescription(answer);
       
       _socketService.sendAnswer(
@@ -145,6 +197,8 @@ class WebRTCService {
         },
         from,
       );
+      
+      print('✅ Sent answer to $from');
     } catch (e) {
       print('❌ Error handling offer: $e');
     }
@@ -156,11 +210,22 @@ class WebRTCService {
       final answer = data['answer'];
       final from = data['from'];
       
+      print('📥 Received answer from $from');
+      
+      // Skip if it's from ourselves
+      if (from == _currentParticipantId) {
+        print('⏭️ Skipping answer from self');
+        return;
+      }
+      
       final peerConnection = _peerConnections[from];
       if (peerConnection != null) {
         await peerConnection.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
+        print('✅ Set remote description from answer: $from');
+      } else {
+        print('⚠️ No peer connection found for $from');
       }
     } catch (e) {
       print('❌ Error handling answer: $e');
@@ -173,6 +238,11 @@ class WebRTCService {
       final candidateData = data['candidate'];
       final from = data['from'];
       
+      // Skip if it's from ourselves
+      if (from == _currentParticipantId) {
+        return;
+      }
+      
       final peerConnection = _peerConnections[from];
       if (peerConnection != null) {
         final candidate = RTCIceCandidate(
@@ -181,6 +251,9 @@ class WebRTCService {
           candidateData['sdpMLineIndex'],
         );
         await peerConnection.addCandidate(candidate);
+        print('🧊 Added ICE candidate from $from');
+      } else {
+        print('⚠️ No peer connection found for ICE candidate from $from');
       }
     } catch (e) {
       print('❌ Error handling ICE candidate: $e');
@@ -190,8 +263,32 @@ class WebRTCService {
   // Create offer for a new participant
   Future<void> createOffer(String participantId) async {
     try {
+      // Skip if trying to create offer to self
+      if (participantId == _currentParticipantId) {
+        print('⏭️ Skipping offer to self');
+        return;
+      }
+      
+      print('📤 Creating offer for $participantId');
+      
+      // Close existing connection if any
+      if (_peerConnections.containsKey(participantId)) {
+        print('♻️ Closing existing connection with $participantId');
+        await _peerConnections[participantId]?.close();
+        _peerConnections.remove(participantId);
+      }
+      
       final peerConnection = await _createPeerConnection(participantId);
-      final offer = await peerConnection.createOffer();
+      
+      // Create offer with proper constraints
+      final offerConstraints = {
+        'mandatory': {
+          'OfferToReceiveAudio': true,
+          'OfferToReceiveVideo': true,
+        },
+      };
+      
+      final offer = await peerConnection.createOffer(offerConstraints);
       await peerConnection.setLocalDescription(offer);
       
       _socketService.sendOffer(
@@ -201,6 +298,8 @@ class WebRTCService {
         },
         participantId,
       );
+      
+      print('✅ Offer created and sent to $participantId');
     } catch (e) {
       print('❌ Error creating offer: $e');
     }

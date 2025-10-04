@@ -39,6 +39,8 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    // Set participant ID first
+    _webrtcService.setCurrentParticipantId(widget.currentParticipant.id);
     _initializeRenderers();
     _initializeSocket();
     _initializeMedia();
@@ -120,12 +122,21 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
           joinedAt: data['timestamp'] ?? '',
           isHost: data['isHost'] ?? false,
         );
+        
+        // Skip if it's the current user
+        if (participant.id == widget.currentParticipant.id) {
+          print('⏭️ Skipping self join event');
+          return;
+        }
+        
         _addParticipant(participant);
 
         // Create WebRTC connection for new participant
-        if (participant.id != widget.currentParticipant.id) {
+        // Add a small delay to ensure the new participant is ready
+        Future.delayed(const Duration(milliseconds: 500), () {
+          print('🔗 Creating connection with ${participant.name} (${participant.id})');
           _webrtcService.createOffer(participant.id);
-        }
+        });
 
         // Add system message
         setState(() {
