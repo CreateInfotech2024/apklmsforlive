@@ -266,6 +266,40 @@ class ApiService {
     }
   }
 
+  // End a course (host action)
+  static Future<ApiResponse<LiveCourse>> endCourse(
+    String courseId, {
+    required String hostId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/live_courses/$courseId/end'),
+            headers: _headers,
+            body: jsonEncode({
+              'hostId': hostId,
+            }),
+          )
+          .timeout(timeout);
+
+      final jsonResponse = jsonDecode(response.body);
+      return ApiResponse<LiveCourse>(
+        success: jsonResponse['success'] ?? false,
+        data: jsonResponse['data'] != null
+            ? LiveCourse.fromJson(jsonResponse['data'])
+            : null,
+        error: jsonResponse['error'],
+        message: jsonResponse['message'],
+      );
+    } catch (e) {
+      return ApiResponse<LiveCourse>(
+        success: false,
+        error: 'Failed to end course',
+        message: e.toString(),
+      );
+    }
+  }
+
   // Complete a course
   static Future<ApiResponse<LiveCourse>> completeCourse(String courseId) async {
     try {

@@ -131,6 +131,7 @@ GET  /api/live_courses/:id       # Get course by ID
 POST /api/live_courses/:id/start # Start course
 POST /api/live_courses/join      # Join course
 POST /api/live_courses/:id/leave # Leave course
+POST /api/live_courses/:id/end   # End course (host action)
 POST /api/live_courses/:id/complete # Complete course
 GET  /health                     # Health check
 ```

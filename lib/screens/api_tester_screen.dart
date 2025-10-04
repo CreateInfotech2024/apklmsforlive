@@ -108,7 +108,21 @@ class _ApiTesterScreenState extends State<ApiTesterScreen> {
 
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // Test 5: Socket.IO Connection (if meeting code is available)
+    // Test 5: End Course (host action)
+    try {
+      final endResponse = await ApiService.endCourse(
+        testCourseId,
+        hostId: 'test_instructor_123',
+      );
+      _addResult('End Course (Host)', endResponse.success,
+          data: endResponse.data, error: endResponse.error);
+    } catch (e) {
+      _addResult('End Course (Host)', false, error: e.toString());
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Test 6: Socket.IO Connection (if meeting code is available)
     if (meetingCode.isNotEmpty) {
       try {
         final socketService = SocketService();

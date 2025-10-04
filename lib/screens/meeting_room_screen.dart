@@ -284,7 +284,15 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
     );
 
     if (confirmed == true) {
-      await ApiService.completeCourse(widget.course.id);
+      // Use endCourse for host actions, completeCourse otherwise
+      if (widget.currentParticipant.isHost) {
+        await ApiService.endCourse(
+          widget.course.id,
+          hostId: widget.currentParticipant.id,
+        );
+      } else {
+        await ApiService.completeCourse(widget.course.id);
+      }
       _socketService.removeAllListeners();
       if (mounted) {
         Navigator.of(context).pop();
