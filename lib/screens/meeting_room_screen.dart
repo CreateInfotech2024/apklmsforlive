@@ -120,13 +120,9 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
     _socketService.connect();
 
     if (widget.course.meetingCode != null) {
-      _socketService.joinMeetingRoom(
-        widget.course.meetingCode!,
-        widget.currentParticipant.name,
-        participantId: widget.currentParticipant.id,
-        isHost: widget.currentParticipant.isHost ?? false,
-      );
-
+      // Set up all event listeners BEFORE joining the room
+      // This ensures we don't miss any events
+      
       _socketService.onChatMessage((message) {
         setState(() {
           _chatMessages.add(message);
@@ -196,6 +192,14 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
           }
         });
       });
+
+      // Join the meeting room AFTER all listeners are set up
+      _socketService.joinMeetingRoom(
+        widget.course.meetingCode!,
+        widget.currentParticipant.name,
+        participantId: widget.currentParticipant.id,
+        isHost: widget.currentParticipant.isHost ?? false,
+      );
     }
   }
 
